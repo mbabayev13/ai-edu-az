@@ -446,6 +446,6 @@ export const socialLinks: SocialLink[] = [
 export const siteMetadata: SiteMetadata = {
   title: "AI.edu.az | Süni intellekt üzrə praktiki təhsil",
   description: "AI mühəndisliyini sıfırdan öyrən, praktiki layihələr hazırla və öz süni intellekt həllərini yarat.",
-  canonicalUrl: "https://ai.edu.az",
+  canonicalUrl: "https://ai-institute.az",
   openGraphImage: "/logo-transparent.png",
 };
