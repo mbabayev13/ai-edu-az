@@ -1,0 +1,18 @@
+export const brandColors = {
+  navy: "#00065A",
+  turquoise: "#1CCBAC",
+  green: "#37C56F",
+  lime: "#B8F35A",
+  warmIvory: "#F7F8F4",
+  paper: "#FFFEFA",
+  ink: "#0C1230",
+  surfaceTurquoise: "#EAF8F5",
+  surfaceBlue: "#EEF3FC",
+  surfaceNavy: "#E6EAF6",
+  surfaceGreen: "#EDF8F1",
+  projectsSurface: "#F8F8F4",
+  surfaceMint: "#EDF6F2",
+  surfaceCoolBlue: "#EEF3F9",
+  accentDark: "#117A6B",
+  greenDivider: "rgba(55,197,111,.34)",
+} as const;
