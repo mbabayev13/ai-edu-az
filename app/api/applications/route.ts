@@ -12,6 +12,33 @@ function value(input: unknown, max: number) {
   return typeof input === "string" ? input.trim().slice(0, max) : "";
 }
 
+type Application = {
+  fullName: string;
+  phone: string;
+  email: string;
+  course: string;
+  submittedAt: string;
+};
+
+async function appendToGoogleSheet(application: Application) {
+  const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+  const webhookSecret = process.env.GOOGLE_SHEETS_WEBHOOK_SECRET;
+  if (!webhookUrl || !webhookSecret) return false;
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...application, secret: webhookSecret }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!response.ok) throw new Error("Google Sheets webhook request failed");
+  const result = (await response.json().catch(() => null)) as { ok?: boolean } | null;
+  if (!result?.ok) throw new Error("Google Sheets webhook rejected the application");
+  return true;
+}
+
 export async function POST(request: NextRequest) {
   const contentType = request.headers.get("content-type") ?? "";
   const origin = request.headers.get("origin");
@@ -48,35 +75,50 @@ export async function POST(request: NextRequest) {
   const smtpUser = process.env.SMTP_USER;
   const smtpPassword = process.env.SMTP_APP_PASSWORD;
   const recipient = process.env.APPLICATION_RECIPIENT ?? "ai.edu.azerbaijan@gmail.com";
-  if (!smtpUser || !smtpPassword) {
+  const sheetsConfigured = Boolean(process.env.GOOGLE_SHEETS_WEBHOOK_URL && process.env.GOOGLE_SHEETS_WEBHOOK_SECRET);
+  const emailConfigured = Boolean(smtpUser && smtpPassword);
+  if (!sheetsConfigured && !emailConfigured) {
     return NextResponse.json({ message: "Göndəriş xidməti hazırda aktiv deyil. Zəhmət olmasa WhatsApp ilə əlaqə saxla." }, { status: 503 });
   }
 
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: { user: smtpUser, pass: smtpPassword },
-  });
+  const submittedAt = new Date().toISOString();
+  let savedToSheet = false;
 
   try {
-    await transporter.sendMail({
-      from: `AI.edu.az müraciətləri <${smtpUser}>`,
-      to: recipient,
-      replyTo: email,
-      subject: `Yeni kurs müraciəti: ${fullName}`,
-      text: [
-        "AI.edu.az saytından yeni müraciət",
-        "",
-        `Ad və soyad: ${fullName}`,
-        `Telefon: ${phone}`,
-        `E-poçt: ${email}`,
-        `Təlim proqramı: ${course}`,
-        `Tarix: ${new Date().toISOString()}`,
-      ].join("\n"),
-    });
+    savedToSheet = await appendToGoogleSheet({ fullName, phone, email, course, submittedAt });
   } catch {
-    return NextResponse.json({ message: "Müraciəti göndərmək mümkün olmadı. Zəhmət olmasa WhatsApp ilə əlaqə saxla." }, { status: 502 });
+    return NextResponse.json({ message: "Müraciəti Google cədvəlinə əlavə etmək mümkün olmadı. Zəhmət olmasa yenidən cəhd et." }, { status: 502 });
+  }
+
+  if (emailConfigured) {
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: { user: smtpUser, pass: smtpPassword },
+    });
+
+    try {
+      await transporter.sendMail({
+        from: `AI.edu.az müraciətləri <${smtpUser}>`,
+        to: recipient,
+        replyTo: email,
+        subject: `Yeni kurs müraciəti: ${fullName}`,
+        text: [
+          "AI.edu.az saytından yeni müraciət",
+          "",
+          `Ad və soyad: ${fullName}`,
+          `Telefon: ${phone}`,
+          `E-poçt: ${email}`,
+          `Tədris proqramı: ${course}`,
+          `Tarix: ${submittedAt}`,
+        ].join("\n"),
+      });
+    } catch {
+      if (!savedToSheet) {
+        return NextResponse.json({ message: "Müraciəti göndərmək mümkün olmadı. Zəhmət olmasa WhatsApp ilə əlaqə saxla." }, { status: 502 });
+      }
+    }
   }
 
   return NextResponse.json({ ok: true });

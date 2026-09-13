@@ -62,7 +62,7 @@ export function ApplicationForm({ course, courses }: ApplicationFormProps) {
           <TextField
             select
             name="course"
-            label="Təlim proqramı"
+            label="Tədris proqramı"
             defaultValue={course ?? courses[0]}
             required
             fullWidth
@@ -74,7 +74,7 @@ export function ApplicationForm({ course, courses }: ApplicationFormProps) {
             ))}
           </TextField>
         ) : (
-          <TextField name="course" label="Təlim proqramı" value={course ?? ""} required fullWidth slotProps={{ input: { readOnly: true } }} />
+          <TextField name="course" label="Tədris proqramı" value={course ?? ""} required fullWidth slotProps={{ input: { readOnly: true } }} />
         )}
         <Box sx={{ position: "absolute", left: "-10000px", width: 1, height: 1, overflow: "hidden" }} aria-hidden="true">
           <TextField name="website" label="Website" tabIndex={-1} autoComplete="off" />
